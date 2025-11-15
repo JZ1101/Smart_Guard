@@ -8,7 +8,7 @@ tokenizer = None
 # model = AutoModelForSequenceClassification.from_pretrained("madhurjindal/Jailbreak-Detector", use_auth_token=True)
 # tokenizer = AutoTokenizer.from_pretrained("madhurjindal/Jailbreak-Detector", use_auth_token=True)
 
-threshold_value = 0.7  # Set your desired threshold here
+threshold_value = 0.85  # Set your desired threshold here
 SAFETY_THRESHOLD = threshold_value
 
 def _load_model():
@@ -33,7 +33,7 @@ def initial_screening(user_prompt):
     labels = model.config.id2label
     predicted_label = labels[predicted_index]
     
-    if predicted_prob > SAFETY_THRESHOLD:
+    if predicted_prob < SAFETY_THRESHOLD:
         return {"safe": False, "label": predicted_label, "score": predicted_prob}
     else:
         return {"safe": True, "prompt": user_prompt}
