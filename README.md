@@ -1,0 +1,1 @@
+Smart Guard is a security layer to prevent prompt injection.
