@@ -1,0 +1,73 @@
+#python 
+*.pyc
+__pycache__/
+.env
+venv/
+.env/
+.idea/
+.vscode/
+.DS_Store
+logs/
+*.log
+data/
+#js
+node_modules/
+dist/
+build/
+.env
+#macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+# Thumbnails
+._*
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+# Visual Studio Code
+.vscode/
+.history/
+# Python virtual environments
+env/
+venv/
+ENV/
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+# Logs and databases
+*.log
+*.sqlite3
+# macOS system files
+.DS_Store
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+# Sphinx documentation
+docs/_build/
+# PyInstaller
+dist/
+build/
+# C extensions
+*.so
+# Distribution / packaging
+.Python
+build/develop-eggs/
+dist/
+downloads/
+eggs/
