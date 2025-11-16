@@ -1,0 +1,7 @@
+pattern_threshold: 0.1202
+jailbreak_boost: 1.1452
+benign_penalty: 0.6197
+attack_fallback: 0.1702
+confidence_threshold: 0.3624
+alpha: 0.7
+epsilon: 0.01

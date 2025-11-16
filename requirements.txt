@@ -1,32 +1,15 @@
 # ============================================
-# CORE DEPENDENCIES (Required for all guards)
+# CORE DEPENDENCIES (Required)
 # ============================================
-anthropic>=0.34.0           # Claude API for ComplexGuard
-sentence-transformers>=2.2.0  # For PureEmbeddingGuard
-numpy>=1.24.0               # Array operations for embeddings
-pandas>=2.0.0               # CSV processing for benchmarks
-python-dotenv>=1.0.0        # Environment variable management
-torch>=2.1.0                # PyTorch backend for sentence-transformers
-
-# ============================================
-# OPTIONAL: Additional Guard Providers
-# ============================================
-# Uncomment these if you want to use specific providers:
-
-# For OpenAI-based guards (not currently used)
-# openai>=1.3.0
-
-# For Llama Guard via Replicate API
-# replicate>=0.15.0
-
-# For NeMo Guardrails (rule-based guard)
-# nemoguardrails>=0.7.0
-
-# For local transformer models
-# transformers>=4.35.0
-# accelerate>=0.24.0
+anthropic>=0.34.0           # For future Claude integration
+sentence-transformers>=2.2.0  # Layer 1 embedding model
+numpy>=1.24.0               # Array operations
+pandas>=2.0.0               # CSV processing
+python-dotenv>=1.0.0        # Environment variables
+replicate>=0.15.0           # Layer 2 - Llama Guard 4 API
+pyyaml>=6.0                 # Config file parsing
 
 # ============================================
-# OPTIONAL: Frontend/Backend (Future)
+# OPTIONAL DEPENDENCIES
 # ============================================
-# streamlit>=1.28.0         # For web UI
+# nltk>=3.8.0                 # For advanced text processing (auto-downloaded in code)

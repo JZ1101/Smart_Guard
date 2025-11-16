@@ -1,14 +1,17 @@
-# complex/complex_guard.py
-
-from anthropic import Anthropic
-from sentence_transformers import SentenceTransformer
-import numpy as np
-import json
+"""
+Llama Guard 4 threat detector via Replicate API
+No Claude - pure Llama Guard 4 (streaming)
+"""
+import os
+import replicate
 
 class ComplexGuard:
     """
-    Multi-class threat detector
-    Returns: threat_score + attack_type classification
+    Llama Guard 4-based threat detector via Replicate
+    
+    Usage:
+        guard = ComplexGuard(verbose=True)
+        result = guard.check("Your prompt here")
     """
     
     ATTACK_TYPES = [
@@ -21,139 +24,135 @@ class ComplexGuard:
         "benign"
     ]
     
-    def __init__(self):
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.claude = Anthropic()
+    def __init__(self, verbose=False):
+        """
+        Initialize Llama Guard 4 via Replicate
         
-        # Load categorized attack examples
-        self.attack_db = self._load_attack_database()
-        self.embeddings_by_type = self._precompute_embeddings()
+        Args:
+            verbose: Enable debug logging
+        """
+        self.verbose = verbose
+        self._init_replicate()
+    
+    def _init_replicate(self):
+        """Initialize Replicate API"""
+        api_key = os.getenv("REPLICATE_API_TOKEN")
+        if not api_key:
+            raise ValueError("REPLICATE_API_TOKEN environment variable is required")
+        
+        # Set environment variable for replicate client
+        os.environ["REPLICATE_API_TOKEN"] = api_key
+        
+        if self.verbose:
+            print("✓ Llama Guard 4 initialized (Replicate)")
     
     def check(self, text):
         """
+        Check if text is a threat using Llama Guard 4
+        
         Returns: {
             "threat_score": 0.0-1.0,
-            "attack_type": "prompt_extraction" | "jailbreak" | ...,
-            "confidence": 0.0-1.0
+            "attack_type": "jailbreak" | "harmful_content" | "benign",
+            "confidence": 0.0-1.0,
+            "reasoning": "Llama Guard output",
+            "provider": "llama_guard_4"
         }
         """
-        
-        # Stage 1: Semantic classification
-        semantic_result = self._semantic_classify(text)
-        
-        # Stage 2: LLM judge for uncertain cases
-        if semantic_result["confidence"] < 0.7:
-            llm_result = self._llm_classify(text)
-            return self._ensemble(semantic_result, llm_result)
-        
-        return semantic_result
-    
-    def _semantic_classify(self, text):
-        """Use embeddings to classify attack type"""
-        embedding = self.model.encode([text])
-        
-        scores_by_type = {}
-        for attack_type, type_embeddings in self.embeddings_by_type.items():
-            similarities = np.dot(embedding, type_embeddings.T)[0]
-            scores_by_type[attack_type] = float(np.max(similarities))
-        
-        # Find most similar type
-        predicted_type = max(scores_by_type, key=scores_by_type.get)
-        max_score = scores_by_type[predicted_type]
-        
-        return {
-            "threat_score": max_score if predicted_type != "benign" else 0.0,
-            "attack_type": predicted_type,
-            "confidence": max_score,
-            "all_scores": scores_by_type
-        }
-    
-    def _llm_classify(self, text):
-        """Use Claude to classify attack type"""
-        
-        prompt = f"""Analyze this input and classify the threat type.
-
-Input: {text}
-
-Classify as ONE of these types:
-- prompt_extraction: Trying to reveal system prompts
-- jailbreak: Trying to bypass safety rules
-- data_exfiltration: Trying to extract sensitive data
-- harmful_content: Requesting dangerous information
-- tool_misuse: Trying to misuse agent capabilities
-- social_engineering: Manipulation tactics
-- benign: Safe, legitimate query
-
-Respond ONLY with JSON:
-{{
-  "attack_type": "...",
-  "threat_score": 0.0-1.0,
-  "reasoning": "brief explanation"
-}}"""
+        if self.verbose:
+            print(f"[Llama Guard 4] Classifying via Replicate...")
         
         try:
-            response = self.claude.messages.create(
-                model="claude-3-5-haiku-20241022",
-                max_tokens=150,
-                messages=[{"role": "user", "content": prompt}]
-            )
+            if self.verbose:
+                print("🌐 [API] Calling Replicate API (streaming)...")
             
-            result = json.loads(response.content[0].text)
+            # Stream Llama Guard 4 output
+            output_parts = []
+            for event in replicate.stream(
+                "meta/llama-guard-4-12b",
+                input={
+                    "prompt": text,
+                    "top_p": 1,
+                    "temperature": 0.1,
+                    "max_completion_tokens": 100,
+                    "presence_penalty": 0,
+                    "frequency_penalty": 0
+                }
+            ):
+                output_parts.append(str(event))
+            
+            # Combine streamed output
+            output_text = ''.join(output_parts).strip()
+            
+            if self.verbose:
+                print(f"✓ [API] Llama Guard 4 output: {output_text}")
+            
+            # Parse Llama Guard 4 output
+            output_lower = output_text.lower()
+            
+            # Check if safe or unsafe
+            if "safe" in output_lower and "unsafe" not in output_lower:
+                # Explicitly marked as safe
+                attack_type = "benign"
+                threat_score = 0.1
+                confidence = 0.95
+            else:
+                # Either "unsafe" or contains category (S1-S14)
+                # Llama Guard 4 categories (S1-S14):
+                # S1: Violent Crimes
+                # S2: Non-Violent Crimes  
+                # S3: Sex-Related Crimes
+                # S4: Child Sexual Exploitation
+                # S5: Defamation
+                # S6: Specialized Advice
+                # S7: Privacy
+                # S8: Intellectual Property
+                # S9: Indiscriminate Weapons
+                # S10: Hate
+                # S11: Suicide & Self-Harm
+                # S12: Sexual Content
+                # S13: Elections
+                # S14: Code Interpreter Abuse
+                
+                # Map categories to attack types
+                if any(cat in output_lower for cat in ["s1", "s2", "s3", "s4", "s9", "s10", "s11", "s12"]):
+                    attack_type = "harmful_content"
+                elif any(cat in output_lower for cat in ["s6", "s7", "s8"]):
+                    attack_type = "data_exfiltration"
+                elif "s14" in output_lower:
+                    attack_type = "tool_misuse"
+                elif "s13" in output_lower:
+                    attack_type = "social_engineering"
+                elif "unsafe" in output_lower:
+                    # Generic unsafe without category
+                    attack_type = "jailbreak"
+                else:
+                    # Fallback - if we get here something is wrong
+                    attack_type = "jailbreak"
+                
+                threat_score = 0.9
+                confidence = 0.85
+            
             return {
-                "attack_type": result["attack_type"],
-                "threat_score": result["threat_score"],
-                "confidence": result["threat_score"],
-                "reasoning": result.get("reasoning", "")
+                "attack_type": attack_type,
+                "threat_score": threat_score,
+                "confidence": confidence,
+                "reasoning": output_text,
+                "provider": "llama_guard_4"
             }
-        except:
+            
+        except Exception as e:
+            if self.verbose:
+                print(f"✗ [API] Llama Guard 4 (Replicate) failed: {e}")
             return {
-                "attack_type": "unknown",
+                "attack_type": "api_error",
                 "threat_score": 0.5,
-                "confidence": 0.3
+                "confidence": 0.0,
+                "error": str(e),
+                "provider": "llama_guard_4"
             }
-    
-    def _ensemble(self, semantic_result, llm_result):
-        """Combine semantic + LLM predictions"""
-        
-        # If both agree on type, high confidence
-        if semantic_result["attack_type"] == llm_result["attack_type"]:
-            return {
-                "attack_type": semantic_result["attack_type"],
-                "threat_score": (semantic_result["threat_score"] * 0.4 + 
-                               llm_result["threat_score"] * 0.6),
-                "confidence": 0.9,
-                "method": "ensemble_agreement"
-            }
-        
-        # If disagree, trust LLM more
-        return {
-            "attack_type": llm_result["attack_type"],
-            "threat_score": llm_result["threat_score"],
-            "confidence": 0.6,
-            "method": "ensemble_llm_weighted"
-        }
-    
-    def _load_attack_database(self):
-        """Load categorized attacks from JSON"""
-        with open("attacks/attack_suite.json") as f:
-            data = json.load(f)
-        
-        # Organize by type
-        db = {attack_type: [] for attack_type in self.ATTACK_TYPES}
-        
-        for attack in data["attacks"]:
-            attack_type = attack.get("type", "benign")
-            if attack_type in db:
-                db[attack_type].append(attack["prompt"])
-        
-        return db
-    
-    def _precompute_embeddings(self):
-        """Pre-compute embeddings for each attack type"""
-        embeddings = {}
-        
-        for attack_type, examples in self.attack_db.items():
-            if examples:  # Only if we have examples
-                embeddings[attack_type] = self.model.encode(examples)
-        
-        return embeddings
+
+
+# Convenience function
+def create_guard(verbose=False):
+    """Factory function to create a guard"""
+    return ComplexGuard(verbose=verbose)
