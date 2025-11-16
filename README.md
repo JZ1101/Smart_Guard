@@ -36,6 +36,17 @@ uv run scripts/test_smart_guard.py
 uv run scripts/test_smart_guard.py --alpha 0.8 --epsilon 0.2 --beta 0.7
 ```
 
+## Test Individual Layers
+
+```bash
+# Test Pure Embedding Guard (Layer 1 baseline - no API needed)
+uv run scripts/test_embedding.py
+
+# Test Improved Embedding Guard (Layer 1 optimized - no API needed)
+uv run scripts/test_improved_embedding.py
+
+```
+
 ## Train Layer 1 Thresholds (Optional - No API needed!)
 
 ```bash
@@ -72,65 +83,22 @@ Input → Smart Guard → LLM/Agent Service Endpoint
    * If flagged, the request is aborted.
    * Otherwise, it is passed through (safe).
 
+**Benchmark Competitors**
+
+* **Llama Guard 4 (12B)** - Meta's dedicated safety model
+* **Gemini 2.5 Pro** - Google's latest multimodal model
+
 **Test Method**
 
-* Construct a dataset of 20,000 entries: 10,000 good and 10,000 bad.
-* Benchmark the system against OpenAI GPT-4o and other guards.
+* Construct a dataset of balanced entries: 250 good and 250 bad.
+* Benchmark the system against Llama Guard 4 (12B) and Gemini 2.5 Pro.
 * For each batch, randomly select 25 entries from the good dataset and 25 from the bad dataset.
 * Repeat this 10 times.
 * Compare the F1 scores.
 
-## Frontend Integration
+**Why Smart Guard?**
 
-The interactive web dashboard (React + Vite + Tailwind) from the external Smart Guard UI has been added as a Git submodule under `frontend/smart-guard-app`.
-
-### Why a Submodule?
-Using a submodule keeps the upstream UI code separate so you can pull updates from the original repository without manual copy/paste and preserves authorship.
-
-### Getting the Frontend Running
-
-After cloning this repository, initialize and update submodules:
-
-```bash
-git submodule update --init --recursive
-```
-
-Then install and run the frontend locally:
-
-```bash
-cd frontend/smart-guard-app
-npm install
-npm run dev
-```
-
-The dev server (Vite) will start (default port 8080 in its config or 5173 if changed). Open the printed URL in your browser.
-
-### Syncing Upstream Changes
-
-To pull the latest UI updates from the external repo:
-
-```bash
-cd frontend/smart-guard-app
-git fetch origin
-git checkout main
-git pull origin main
-cd ../../
-git add frontend/smart-guard-app
-git commit -m "Update smart-guard frontend submodule"
-```
-
-### Making Local UI Changes
-
-If you intend to diverge significantly, consider converting the submodule into a full copy:
-
-```bash
-git rm --cached frontend/smart-guard-app
-mv frontend/smart-guard-app frontend/app
-```
-
-Then commit and maintain the code directly.
-
-### Notes
-- Keep backend security logic isolated; the frontend currently implements client-side filtering only for demonstration.
-- Any production deployment should route user input through the Python guard pipeline before LLM calls.
-
+* **Cost-effective**: Layer 1 filters 80%+ of requests without API calls
+* **Fast**: Embedding-based filtering adds minimal latency
+* **Accurate**: Two-layer approach combines speed with precision
+* **Customizable**: Tune thresholds (α, ε, β) for your use case
