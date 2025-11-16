@@ -1,0 +1,3 @@
+[submodule "frontend/smart-guard-app"]
+	path = frontend/smart-guard-app
+	url = https://github.com/hele211/smart-guard.git
