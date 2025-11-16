@@ -9,7 +9,6 @@ venv/
 .DS_Store
 logs/
 *.log
-data/
 #js
 node_modules/
 dist/
